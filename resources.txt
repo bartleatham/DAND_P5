@@ -1,0 +1,12 @@
+## research on gridsearch
+https://www.quora.com/How-do-I-properly-use-SelectKBest-GridSearchCV-and-cross-validation-in-the-sklearn-package-together
+
+## sklearn, numerous searches for help with classifier algorithms
+http://scikit-learn.org
+
+## searches for help with python coding
+https://stackoverflow.com/
+
+## many searches for help with project and coursework explanations
+https://discussions.udacity.com/c/nd002-intro-to-machine-learning
+
