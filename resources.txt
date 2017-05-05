@@ -10,3 +10,5 @@ https://stackoverflow.com/
 ## many searches for help with project and coursework explanations
 https://discussions.udacity.com/c/nd002-intro-to-machine-learning
 
+##markdown cheatsheet
+https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet
