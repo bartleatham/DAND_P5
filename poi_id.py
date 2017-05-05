@@ -4,10 +4,11 @@ import sys
 import pickle
 from time import time
 sys.path.append("../tools/")
+import csv
+import pandas as pd
+import pprint
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
-import matplotlib
-from numpy import mean
 import matplotlib.pyplot as plt
 from sklearn.cross_validation import train_test_split
 from sklearn.naive_bayes import GaussianNB
@@ -18,7 +19,6 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import PCA
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
@@ -35,17 +35,17 @@ features_list = ['poi',
 				'long_term_incentive',
 				'restricted_stock', 
 				'total_payments',
-				#'shared_receipt_with_poi',
+				'shared_receipt_with_poi',
 				'loan_advances', 
 				'expenses', 
-				#'from_poi_to_this_person',
-				#'other',
+				'from_poi_to_this_person',
+				'other',
 				'email_from_poi_ratio',
-				#'from_this_person_to_poi', 
+				'from_this_person_to_poi', 
 				'director_fees',  
-				#'to_messages',  
+				'to_messages',  
 				'deferral_payments', 
-				#'from_messages', 
+				'from_messages', 
 				'restricted_stock_deferred'
 				]
 
@@ -56,16 +56,16 @@ with open("final_project_dataset.pkl", "r") as data_file:
 ### Task 2: Remove outliers
 
 ### Summarize the data set
-print("Number of People: {}".format(len(data_dict)))
-print("Number of Features: {}".format(len(data_dict[data_dict.keys()[0]])))
+#print("Number of People: {}".format(len(data_dict)))
+#print("Number of Features: {}".format(len(data_dict[data_dict.keys()[0]])))
 
 ### get # of POI
-num_poi = 0
+poi_cnt = 0
 for person in data_dict.values():
 	if person['poi'] == 1:
-		num_poi +=1
+		poi_cnt +=1
 
-print("Number of POI is: {}".format(num_poi))
+#print("Number of POI is: {}".format(poi_cnt))
 
 ### find entries with no total_payments or total_stock_value
 #for entry in data_dict:
@@ -77,6 +77,7 @@ print("Number of POI is: {}".format(num_poi))
 outlier_list = ['TOTAL', 'LOCKHART EUGENE E', 'THE TRAVEL AGENCY IN THE PARK']
 for outlier in outlier_list:
 	data_dict.pop(outlier, 0) 
+
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
@@ -108,7 +109,7 @@ labels, features = targetFeatureSplit(data)
 #plt.ylabel("bonus")
 #plt.show()
 
-### Task 4: Try a varity of classifiers
+### Task 4: Try a variety of classifiers
 ### Please name your classifier clf for easy export below.
 ### Note that if you want to do PCA or other multi-stage operations,
 ### you'll need to use Pipelines. For more info:
@@ -121,8 +122,10 @@ scaler = MinMaxScaler()
 features = scaler.fit_transform(features)
 
 ### Select KBest
-#skb = SelectKBest(k = 15)
-#skb.fit(features, labels)
+skb = SelectKBest(k = 'all')
+skb.fit(features, labels)
+#scores = skb.scores_
+#print(scores)
 
 ### GaussianNB
 ### Best Results:  Acc: 0.8337, Precision: 0.3492, Recall: 0.286, F1: 0.314
@@ -149,7 +152,7 @@ features = scaler.fit_transform(features)
 #print(clf.best_estimator_)
 
 ### DecisionTree
-### Best Results:  Acc: 0.835, Precision: 0.4013, Recall: 0.482, F1: 0.438
+### Best Results:  Acc: 0.8389, Precision: 0.4135, Recall: 0.4980, F1: 0.452
 #clf = Pipeline(steps=[('scaling',scaler), ("SKB", skb), ("DecisionTree", DecisionTreeClassifier())])
 
 ### Neighbors
@@ -167,8 +170,8 @@ features = scaler.fit_transform(features)
 # clf = AdaBoostClassifier()
 # t0 = time()
 # param_grid = {'n_estimators': [10, 20, 30, 40, 50],
-#                'algorithm': ['SAMME', 'SAMME.R'],
-#                'learning_rate': [.5,.8, 1, 1.2, 1.5],
+#                'learning_rate': [.5, .8, 1, 1.2, 1.5],
+#				 'algorithm': ['SAMME.R', 'SAMME'],
 #                'random_state': [21, 42, 100]}
 # clf = GridSearchCV(clf, param_grid, verbose=5, n_jobs = 2)
 # clf = clf.fit(features, labels)
@@ -183,6 +186,7 @@ features = scaler.fit_transform(features)
 ### stratified shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
 
+### Final classifier, parameters values used were determined from GridSearchCV results.
 clf = DecisionTreeClassifier(class_weight=None, criterion='entropy', max_depth=2,
             max_features=None, max_leaf_nodes=None,
             min_impurity_split=1e-07, min_samples_leaf=10,
@@ -205,7 +209,7 @@ clf = DecisionTreeClassifier(class_weight=None, criterion='entropy', max_depth=2
 #print("done in %0.3fs" % (time() - t0))
 #print(clf.best_estimator_)
 
-### Run test_classifier to assess results
+### Run test_classifier from tester.py to assess results
 #from tester import *
 #dump_classifier_and_data(clf, my_dataset, features_list)
 #clf, dataset, feature_list = load_classifier_and_data()
