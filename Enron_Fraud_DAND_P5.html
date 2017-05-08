@@ -11768,6 +11768,29 @@ The dataset provided includes many features, and POI identifiers for a number of
 <pre><code>Number of People: 146  
 Number of Features: 21  
 Number of POI is: 18</code></pre>
+<p>For a variety of possible reasons, not all feature entries for all persons had values entered.<br>
+<strong>Missing Values per Feature:</strong></p>
+
+<pre><code>loan_advances                142
+director_fees                129
+restricted_stock_deferred    128
+deferral_payments            107
+deferred_income               97
+long_term_incentive           80
+bonus                         64
+from_this_person_to_poi       60
+from_poi_to_this_person       60
+from_messages                 60
+shared_receipt_with_poi       60
+to_messages                   60
+other                         53
+expenses                      51
+salary                        51
+exercised_stock_options       44
+restricted_stock              36
+total_payments                21
+total_stock_value             20
+poi                            0</code></pre>
 <h3 id="Outlier-Identification">Outlier Identification<a class="anchor-link" href="#Outlier-Identification">&#182;</a></h3><p>The first step to identify outliers was to make a simple plot of salary vs. bonus, there was an obvious significant outlier.<br>
 <img src="outlier.png" alt="Outlier"></p>
 <p>On referencing the enron61702insiderpay.pdf and doing a database query I found that TOTAL (total sum each feature) was included, so I removed it. Next I queried the data for any people with a Salary or Bonus of 0.  This yielded 3 persons, again referring to the enron61702insiderpay.pdf I found 1 person with NaN for all entries, LOCKHART EUGENE E, so he was removed from the dataset.  While investigating the enron61702insiderpay.pdf, I also noticed 'THE TRAVEL AGENCY IN THE PARK', which does not sound like a persons name, so it was removed from the dataset.  After outlier removal, the dataset contained 144 people.
@@ -11804,11 +11827,10 @@ restricted_stock_deferred - 0.065
 email_to_poi_ratio = from_this_person_to_poi/from_messages<br>
 email_from_poi_ratio = from_poi_to_this_person/to_messages<br>
 It makes more sense to look at the ratio of email to/from a poi in relation to all to/from messages, than it does to look at the raw number of messages to/from a poi.  If a person sends/recieves very few emails, but they are all to/from a POI, then that is definitely a person of interest.</p>
-<p>With the full feature list in place, I performed feature scaling on all of the features.  Since some features are in $USD, and others are counts or ratios, it makes sense to scale them so that they contribute proportionaly to the classifiers calculations.</p>
-<p>Next, I used SelectKbest to get the weights of each feature (list of features above is sorted by weight). I started my analysis with Kbest = 10.  Once I had my final classifier defined, and in the process of tuning parameters, I hand modified my feature list and ended up using more than 10 features, yielding better precision and recall results. I found that most financial information was relevant, while most email information was not.</p>
+<p>With the full feature list in place, I performed feature scaling on all of the features using the sklearn.preprocessing.MinMaxScaler. Since some features are in $USD, and others are counts or ratios, it makes sense to scale them so that they contribute proportionaly to the classifiers calculations.</p>
+<p>Next I used SelectKbest to get the weights of each feature (list of features above is sorted by weight). I then determined the optimal k value (number of features) from SelectKbest to achieve the best classifier performance.  To determine the optimal k value, I used a pipeline, with GridSearch cross validation to assess precision and recall scores for values of k from 5-18.  A k value of 10 was shown to offer the best performance with balance between precision and recall.</p>
 <h3 id="Final-Features-Used:">Final Features Used:<a class="anchor-link" href="#Final-Features-Used:">&#182;</a></h3>
-<pre><code>poi
-exercised_stock_options
+<pre><code>exercised_stock_options
 total_stock_value 
 bonus
 salary
@@ -11817,12 +11839,7 @@ deferred_income
 long_term_incentive
 restricted_stock 
 total_payments
-loan_advances 
-expenses 
-email_from_poi_ratio
-director_fees  
-deferral_payments 
-restricted_stock_deferred</code></pre>
+loan_advances</code></pre>
 <h2 id="Classifier-Algorithms">Classifier Algorithms<a class="anchor-link" href="#Classifier-Algorithms">&#182;</a></h2><p>In my classifier testing experimentation I chose to use GaussianNB, SVC, DecisionTree, Kneighbors and AdaBoost, analyzing results and doing some parameter tuning to gauge the potential of each classifier. Note that for the DecisionTree classifier, it is not necessary to use scaled data, though in this case scaled data was used.</p>
 <h3 id="Classifier-Results">Classifier Results<a class="anchor-link" href="#Classifier-Results">&#182;</a></h3><p><strong>GaussianNB</strong><br>
 Precision: 0.34921<br>
@@ -11835,8 +11852,8 @@ Recall: 0.6635<br>
 F1: 0.42187<br>
 Time: 2.629s</p>
 <p><strong>DecisionTree</strong><br>
-Precision: 0.41345<br>
-Recall: 0.498<br>
+Precision: 0.30577<br>
+Recall: 0.2990<br>
 F1: 0.4518<br>
 Time: 1.066s</p>
 <p><strong>KNeighbors</strong><br>
@@ -11849,7 +11866,8 @@ Precision: 0.4495<br>
 Recall: 0.2985<br>
 F1: 0.35877<br>
 Time: 59.788s</p>
-<p>Once each classifier was tested according to the tester.py script, I dove deeper into three of the classifiers before I decided on a final solution. For SVC, DecisionTree and AdaBoost classifiers, I performed GridSearch cross validation to determine the optimal settings of various parameters for each classifier. Using GridSearch for parameter tuning is an indispensable tool in tuning parameters for a machine learning classifier. Some classifiers have many parameters that can be tuned, with a large affect on the results of the classifier. Using the GridSearch allows to perform cross validation with on the classifier with many different combinations of parameters in an automated manner, with the best combination of parameters reported. I found that the DecisionTree classifier yielded the best results from this effort, and decided on using it as my final classifier. After deciding on the DecisionTree classifier, I iterated through various KBest settings and a small amount of manual feature addition to determine the final feature list.</p>
+<h3 id="Classifier-Tuning">Classifier Tuning<a class="anchor-link" href="#Classifier-Tuning">&#182;</a></h3><p>Once each classifier was tested according to the tester.py script, I dove deeper into three of the classifiers before I decided on a final solution. For SVC, DecisionTree and AdaBoost classifiers, I used GridSearch cross validation to perform parameter tuning to determine the optimal settings of various parameters for each classifier. Parameter tuning is an important step in refining a machine learning classifier.  Classifiers come with default settings for a variety of parameters that affect the performance and outcome of the classifier. The main goal of tuning the available parameters is to customize the classifier for the training data being worked with to achieve optimum results. Using GridSearch for parameter tuning is an indispensable tool in tuning parameters for a machine learning classifier. Some classifiers have many parameters that can be tuned, with a large affect on the results of the classifier. Using the GridSearch allows to perform cross validation on the classifier with many different combinations of parameters in an automated manner, with the best combination of parameters reported. It is important to note issues that can arise in algorithm tuning. In tuning it is possible to end up overfitting, or underfitting the classifier to the training data. Overfitting would result in a classifier that scores well on the training data, but does not predict the test data well in validation. Underfitting would not score well on training or test data. It is important to spend time and effort with tuning and validating classifiers to achieve optimum scores and classifier robustness.</p>
+<p>I found that the DecisionTree classifier yielded the best results from the tuning effort, and decided on using it as my final classifier.</p>
 <h3 id="Final-Classifier-Settings-and-GridSearch-Parameters:">Final Classifier Settings and GridSearch Parameters:<a class="anchor-link" href="#Final-Classifier-Settings-and-GridSearch-Parameters:">&#182;</a></h3><p>clf = DecisionTreeClassifier(class_weight=None, criterion='entropy', max_depth=2,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; max_features=None, max_leaf_nodes=None,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; min_impurity_split=1e-07, min_samples_leaf=10,<br>
@@ -11865,10 +11883,10 @@ param_grid = {'criterion': ['gini', 'entropy'],<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'random_state': [None, 21, 42, 100]}<br>
 clf = GridSearchCV(clf, param_grid, verbose=5, n_jobs = 2)</p>
 <h2 id="Validation">Validation<a class="anchor-link" href="#Validation">&#182;</a></h2><p>Validation was performed using the tester.py script which uses a StratifiedShuffleSplit cross-validator with 1000 iterations, the training data consisted of 90<code>%</code> of the data, the remaining 10<code>%</code> of the data was used for testing. It is important to validate the classifier on a set of data other than the data used for training.  If training and testing are performed on the same dataset, there is a risk for overfitting the algorithm, it will report high accuracy but may be unable to correctly identify labels in a new set of data.  Using a randomized sample of 10<code>%</code> of the data, over 1000 iterations is a thorough way to ensure training and testing are performed robustly. Each of the classifiers were validated for accuracy, precision, recall. Due to the limited number of POIs in the dataset, accuracy was not considered in choosing a classifier. With 18 POIs in a dataset of 144 people, a classifier could have an accuracy result of 88<code>%</code> without correctly predicting any POIs. Precision is the ratio of true POI divided by the total actual POIs in the dataset. A higher precision value indicates less false positives identified. Recall is the ratio of true POI divided by the total number of POI identified by the classifier. A higher recall value indicates less false negatives, that is, more people will be identified as POIs. For this case of identifying POIs in the Enron financial scandal, we would rather identify more POIs at the risk of falsely identifying innocent people, than to miss out on identifying actual POIs, so recall is the most important measure of classifier validity.<br>
-The final results for the DecisionTree algorithm were:</p>
+The final results for the DecisionTree algorithm after tuning were:</p>
 <p><strong>DecisionTree</strong><br>
-Precision: 0.41345<br>
-Recall: 0.498<br>
+Precision: 0.46543<br>
+Recall: 0.46650<br>
 F1: 0.4518<br>
 Time: 1.066s</p>
 <h2 id="References">References<a class="anchor-link" href="#References">&#182;</a></h2><p>research on gridsearch<br>

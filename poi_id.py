@@ -4,12 +4,12 @@ import sys
 import pickle
 from time import time
 sys.path.append("../tools/")
-import csv
-import pandas as pd
-import pprint
+import matplotlib
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 from sklearn.cross_validation import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
@@ -35,18 +35,18 @@ features_list = ['poi',
 				'long_term_incentive',
 				'restricted_stock', 
 				'total_payments',
-				'shared_receipt_with_poi',
-				'loan_advances', 
-				'expenses', 
-				'from_poi_to_this_person',
-				'other',
-				'email_from_poi_ratio',
-				'from_this_person_to_poi', 
-				'director_fees',  
-				'to_messages',  
-				'deferral_payments', 
-				'from_messages', 
-				'restricted_stock_deferred'
+				'shared_receipt_with_poi'
+				#'loan_advances', 
+				#'expenses', 
+				#'from_poi_to_this_person',
+				#'other',
+				#'email_from_poi_ratio',
+				#'from_this_person_to_poi', 
+				#'director_fees',  
+				#'to_messages',  
+				#'deferral_payments', 
+				#'from_messages', 
+				#'restricted_stock_deferred'
 				]
 
 ### Load the dictionary containing the dataset
@@ -59,13 +59,21 @@ with open("final_project_dataset.pkl", "r") as data_file:
 #print("Number of People: {}".format(len(data_dict)))
 #print("Number of Features: {}".format(len(data_dict[data_dict.keys()[0]])))
 
-### get # of POI
-poi_cnt = 0
-for person in data_dict.values():
-	if person['poi'] == 1:
-		poi_cnt +=1
+### create a pandas dataframe for quick querries:
+df = pd.DataFrame(data_dict)
+df = df.convert_objects(convert_numeric=True)
+df = df.transpose()
 
-#print("Number of POI is: {}".format(poi_cnt))
+#delete 'email_address' for this exploration, as it is not used.
+del df['email_address']
+
+#print("Missing Values per Feature:")
+is_null = df.isnull().sum()
+is_null = is_null.order(ascending = False)
+#print(is_null)
+
+poi = df["poi"].sum()
+#print("The total Person of Interest count is: {}".format(poi))
 
 ### find entries with no total_payments or total_stock_value
 #for entry in data_dict:
@@ -100,14 +108,14 @@ data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
 
 ###Do some plotting to get a feel for the data
-#for point in data:
-#    salary = point[1]
-#    bonus = point[2]
-#    matplotlib.pyplot.scatter( salary, bonus )
+# for point in data:
+#     salary = point[1]
+#     bonus = point[2]
+#     matplotlib.pyplot.scatter( salary, bonus )
 
-#plt.xlabel("salary")
-#plt.ylabel("bonus")
-#plt.show()
+# plt.xlabel("salary")
+# plt.ylabel("bonus")
+# plt.show()
 
 ### Task 4: Try a variety of classifiers
 ### Please name your classifier clf for easy export below.
@@ -121,8 +129,8 @@ labels, features = targetFeatureSplit(data)
 scaler = MinMaxScaler()
 features = scaler.fit_transform(features)
 
-### Select KBest
-skb = SelectKBest(k = 'all')
+### Select KBest,using pipeline to determine best k value
+skb = SelectKBest()
 skb.fit(features, labels)
 #scores = skb.scores_
 #print(scores)
@@ -153,12 +161,14 @@ skb.fit(features, labels)
 
 ### DecisionTree
 ### Best Results:  Acc: 0.8389, Precision: 0.4135, Recall: 0.4980, F1: 0.452
-#clf = Pipeline(steps=[('scaling',scaler), ("SKB", skb), ("DecisionTree", DecisionTreeClassifier())])
+#pipe = Pipeline(steps=[('scaling',scaler), ("SKB", skb), ("DecisionTree", (DecisionTreeClassifier()))])
+#skb_params = {"SKB__k":[5,6,7,8,9,10,11,12,13,14,15,16,17,18]}
+#clf = GridSearchCV(pipe, param_grid = skb_params, scoring = 'precision', verbose=5)
+#clf = GridSearchCV(pipe, param_grid = skb_params, scoring = 'recall', verbose=5)
 
-### Neighbors
+### KNeighbors
 ### Best Results:  Acc: 0.847, Precision: 0.258, Recall: 0.0765, F1: 0.118
 #clf = Pipeline(steps=[('scaling',scaler), ("SKB", skb), ("Kneighbors", KNeighborsClassifier())])
-
 
 ### AdaBoost  
 ### Best Results:  Acc: 0.8577, Precision: 0.4495, Recall: 0.2985, F1: 0.35877 
@@ -177,7 +187,6 @@ skb.fit(features, labels)
 # clf = clf.fit(features, labels)
 # print("done in %0.3fs" % (time() - t0))
 # print(clf.best_estimator_)
-
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
